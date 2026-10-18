@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Configuración de PHPUnit del Colegio.
+
+    Las suites `Aislamiento` y `Apoderado` están separadas a propósito:
+
+      - Aislamiento: que un colegio no vea los datos de otro (lo impone la
+        Row Level Security de PostgreSQL).
+      - Apoderado: que un padre no vea los datos del hijo de otro. Eso NO lo
+        impone la base: es una regla dentro del colegio, y la implementa
+        `App\Services\Alumnos\AlcanceDeAlumnos`.
+
+    Son dos cosas distintas y es fácil creer que la segunda está cubierta
+    por la primera. No lo está. Por eso hay dos suites.
+-->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         failOnWarning="true"
+         failOnRisky="true"
+         beStrictAboutOutputDuringTests="true">
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+            <exclude>tests/Feature/Aislamiento</exclude>
+            <exclude>tests/Feature/Apoderado</exclude>
+        </testsuite>
+        <testsuite name="Aislamiento">
+            <directory>tests/Feature/Aislamiento</directory>
+        </testsuite>
+        <testsuite name="Apoderado">
+            <directory>tests/Feature/Apoderado</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="COLEGIO_ROLES_CONDUCTA" value="direccion,orientacion,docente"/>
+        <!--
+            Base de datos de pruebas.
+
+            IMPORTANTE: debe ser PostgreSQL, no SQLite. El aislamiento entre
+            colegios está implementado con Row Level Security, que es una
+            función de PostgreSQL: en SQLite las pruebas de aislamiento
+            pasarían sin comprobar nada. Ver docs/10, sección "Por qué las
+            pruebas de aislamiento necesitan PostgreSQL".
+        -->
+        <env name="DB_CONNECTION" value="pgsql"/>
+        <env name="DB_DATABASE" value="colegio_test"/>
+    </php>
+</phpunit>

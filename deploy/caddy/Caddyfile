@@ -1,0 +1,85 @@
+# ---------------------------------------------------------------------------
+# Caddy: entrada pública del Colegio
+# ---------------------------------------------------------------------------
+#
+# Caddy es el ÚNICO servicio expuesto a Internet. Todo lo demás vive en la
+# red interna de Docker y no es alcanzable desde afuera.
+#
+# TLS automático con Let's Encrypt: Caddy pide el certificado, lo renueva y
+# lo guarda en el volumen `caddy-datos`. Hay que publicar 80 y 443 (ver
+# docker-compose.prod.yml).
+#
+# ADVERTENCIA: este archivo no se ejecutó nunca. No había Docker en el
+# entorno donde se escribió el código. Ver docs/10.
+# ---------------------------------------------------------------------------
+
+{
+    email {$ACME_EMAIL}
+}
+
+# ---------------------------------------------------------------------------
+# Redirigir todo HTTP a HTTPS
+# ---------------------------------------------------------------------------
+www.colegio.hefestostudio.cl, colegio.hefestostudio.cl {
+    # ENCABEZADOS DE SEGURIDAD
+    #
+    # Los agrega Caddy en todas las respuestas. La API y la web por separado
+    # no los ponen: el único camino del navegador hacia afuera pasa por acá.
+    header {
+        # Obligar a HTTPS durante un año, incluidos los subdominios.
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+        # Que el navegador no adivine el tipo de contenido de una respuesta.
+        X-Content-Type-Options "nosniff"
+
+        # Que nadie meta el portal en un iframe (clickjacking).
+        X-Frame-Options "DENY"
+
+        # No filtrar la URL completa. Una URL de ficha de alumno identifica a
+        # un menor, y no necesita viajar a terceros.
+        Referrer-Policy "strict-origin-when-cross-origin"
+
+        # No anunciar la tecnología.
+        -Server
+
+        # No hay scripts de terceros, así que se puede ser estricto.
+        # OJO: Nuxt inyecta scripts con nonce; esta política está incompleta
+        # y hay que ajustarla antes de producción. Ver docs/08.
+        Content-Security-Policy "default-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+    }
+
+    # La interfaz.
+    #
+    # `handle` evita que el bloque de `reverse_proxy` de abajo se aplique
+    # también a /api: el orden importa y es la razón de usar `handle` y no
+    # dos `reverse_proxy` sueltos.
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+
+    handle {
+        reverse_proxy web:3000
+    }
+
+    # Archivos estáticos que genera la web.
+    @estaticos path /.output/* /.nuxt/* /_nuxt/*
+    header @estaticos Cache-Control "public, max-age=31536000, immutable"
+
+    # Todo lo demás no se guarda en ninguna caché.
+    header /api/* Cache-Control "private, no-store"
+    log {
+        output stdout
+        format json
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Dominio de Authentik.
+#
+# Va en su propio bloque porque tiene su propia dominio y su propia
+# configuracion de correo, y porque un error de aplicacion del portal no
+# debería verse en la pantalla de acceso al proveedor de identidad.
+# ---------------------------------------------------------------------------
+id.colegio.hefestostudio.cl {
+    reverse_proxy authentik-server:9000
+}

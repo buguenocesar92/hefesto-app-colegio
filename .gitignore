@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# .gitignore del Colegio
+# ---------------------------------------------------------------------------
+
+# Secretos. NUNCA se versionan.
+.env
+.env.prod
+.env.*.local
+api/.env
+web/.env
+
+# Dependencias
+api/vendor/
+web/node_modules/
+web/.nuxt/
+web/.output/
+web/.data/
+
+# Artefactos de compilación
+web/dist/
+api/storage/framework/cache/*
+api/storage/framework/sessions/*
+api/storage/framework/views/*
+api/storage/logs/*
+!api/storage/framework/cache/.gitignore
+!api/storage/framework/sessions/.gitignore
+!api/storage/framework/views/.gitignore
+!api/storage/logs/.gitignore
+
+# Herramientas
+api/.phpunit.cache/
+api/.phpunit.result.cache
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.swp
